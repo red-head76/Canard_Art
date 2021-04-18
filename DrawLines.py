@@ -75,6 +75,7 @@ class Edge():
                         every time
     m (float): steepness according to the linear equation y = mx + b
     """
+
     def __init__(self, p1, p2, m):
         self.p1 = p1
         self.p2 = p2
@@ -132,20 +133,20 @@ class Edge():
                 return 3
         return -1
 
-    def direction_is_viable(self, frame_border_idx, p, direction):
+    def is_viable_direction(self, frame_border_idx, target_point, direction):
         """
         Checks if a rotating direction is viable for a edge on the frame.
         frame_border_idx: frame_border index, meaning 0, 1, 2, 3 for left, top, right, bot
-        p is the targeted point.
+        target_point is the targeted point.
         direction is 1 for clockwise, -1 for anti-clockwise
 
         """
         # Over complicated "simplification" for a wide if-else tree
         # Basically meaning: If its left or top and angle is positive, anticlockwise is viable and
         # vice versa for right or bot
-        if (frame_border_idx < 2 and self.calc_vector_angle(p) <= 0):
+        if (frame_border_idx < 2 and self.calc_vector_angle(target_point) <= 0):
             return (direction == 1)
-        elif (frame_border_idx >= 2 and self.calc_vector_angle(p) > 0):
+        elif (frame_border_idx >= 2 and self.calc_vector_angle(target_point) > 0):
             return (direction == 1)
         return (direction == -1)
 
@@ -384,14 +385,14 @@ def calc_edges(outer_points, inner_points):
     return edges
 
 
-def calc_area(start_edge, start_point, direction, edges):
+def calc_area(start_edge, target_point, direction, edges):
     """
     Calculates an area (list of points) that is determined by the starting
     edge, -point and direction
 
     Args:
         start_edge (Edge object): The starting edge
-        start_point (tuple [2]): The start point
+        target_point (tuple [2]): The target point
         direction (int): Turning direction. 1 for clockwise, -1 for anti-clockwise
         edges (list of edge objects): The list of edges in the pattern
 
@@ -402,27 +403,32 @@ def calc_area(start_edge, start_point, direction, edges):
             if its an edge on the frame.
 
     """
-    area = [(start_edge, start_edge.get_other_point(start_point))]
+    area = [(start_edge, target_point)]
+    start_point = start_edge.get_other_point(target_point)
     last_edge = start_edge
-    last_point = start_edge.get_other_point(start_point)
+    last_point = target_point
     last_angle = 0
     # Check if the given edge is an edge on the frame an the given direction is possible.
     if start_edge.is_frame_edge() >= 0:
-        if (start_edge.direction_is_viable(start_edge.is_frame_edge(), start_point, direction)):
+        if not (start_edge.is_viable_direction(
+                start_edge.is_frame_edge(), target_point, direction)):
             return False
     while not (last_point == start_point):
-        # Fill a list containing all edges containing p and sort it by its steepness m
-        edges_containing_p = []
+        # Fill a list containing all edges containing last_point and sort it by its steepness m
+        edges_containing_last_point = []
         for edge in edges:
             if edge.contains_point(last_point):
-                edges_containing_p.append(edge)
-        edges_containing_p.sort(key=lambda edge: edge.calc_vector_angle(last_point))
+                edges_containing_last_point.append(edge)
         # get index of last_edge in list by angle comparison
+        edges_containing_last_point.sort(
+            key=lambda edge: edge.calc_vector_angle(last_point))
         last_angle = last_edge.calc_vector_angle(last_point)
-        last_edge_idx = [i for i in range(len(edges_containing_p))
-                         if edges_containing_p[i].calc_vector_angle(last_point) == last_angle][0]
+        last_edge_idx = [i for i in range(len(edges_containing_last_point))
+                         if edges_containing_last_point[i].calc_vector_angle(last_point)
+                         == last_angle][0]
         # updating last edge and last point
-        last_edge = edges_containing_p[(last_edge_idx - direction) % len(edges_containing_p)]
+        last_edge = edges_containing_last_point[(
+            last_edge_idx - direction) % len(edges_containing_last_point)]
         last_point = last_edge.get_other_point(last_point)
         area.append((last_edge, last_point))
     return area
@@ -460,7 +466,8 @@ def calc_areas(outer_points, inner_points):
     for _ in range(5):
         edge_to_check, point_to_check = edges_to_check.pop()
         print(f"Area {area_index:}")
-        print(f"edge_to_check: {str(edge_to_check)}, pointing to: {point_to_check}")
+        print(
+            f"edge_to_check: {str(edge_to_check)}, pointing to: {point_to_check}")
         if direction == 1:
             print("clockwise")
         else:
@@ -491,7 +498,8 @@ def calc_areas(outer_points, inner_points):
 
     return areas
 
-outer_points = [(left, top), (left, bot)]#, (right, top), (right, bot)]
+
+outer_points = [(left, top), (left, bot)]  # , (right, top), (right, bot)]
 for point in outer_points:
     draw_point(point)
 
@@ -508,19 +516,5 @@ for opoint in outer_points:
 
 
 # ugly debugging prints
-# for line in calc_lines(outer_points, inner_points):
-#     print(line)
-# for edge in calc_edges(outer_points, inner_points):
-#     print(edge)
-# edges = calc_edges(outer_points, inner_points)
-# ed = 9
-# print(f"edge to look at: {edges[ed]}")
-# print(f"area points: {calc_area(edges[ed], edges[ed].p1, 1, edges)}")
 
-calc_areas(outer_points, inner_points)
-# for area, index in (calc_areas(outer_points, inner_points)):
-#     for edge in area:
-#         print(edge)
-#     print("\n")
-# print(calc_area(edges[0], edges[0].p1, -1, edges))
 tki.mainloop()
